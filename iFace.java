@@ -5,8 +5,25 @@ public class iFace{
 	
 	public static void main(String args[]){
 		input = new Scanner(System.in);
-		String menu[] = {"Entrar", "Criar conta", "Sair"};
-		displayMenuOptions(menu);
+		
+		login();
+		
+		input.close();
+	}
+	
+	public static void login(){
+		String menu = {"Entrar", "Criar conta", "Sair"};
+		
+		while(true){
+			switch(displayMenuOptions(menu)){
+			case 1:
+				break;
+			case 2:
+				break;
+			case 3:
+				return;
+			}
+		}
 	}
 	
 	public static int readInt(){
