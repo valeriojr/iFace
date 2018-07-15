@@ -15,6 +15,7 @@ public class iFace{
 		String menu[] = {"Entrar", "Criar conta", "Sair"};
 		
 		while(true){
+			showTitle("iFace");
 			switch(displayMenuOptions(menu)){
 			case 1:
 				break;
