@@ -12,7 +12,7 @@ public class iFace{
 	}
 	
 	public static void login(){
-		String menu = {"Entrar", "Criar conta", "Sair"};
+		String menu[] = {"Entrar", "Criar conta", "Sair"};
 		
 		while(true){
 			switch(displayMenuOptions(menu)){
@@ -56,7 +56,7 @@ public class iFace{
 			}
 		}
 		
-		return 0;
+		return selectedItem;
 	}
 	
 	public static void showTitle(String title){
