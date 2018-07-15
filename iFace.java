@@ -58,4 +58,9 @@ public class iFace{
 		
 		return 0;
 	}
+	
+	public static void showTitle(String title){
+		System.out.println("\n" + title + "\n");
+	}
+	
 }
