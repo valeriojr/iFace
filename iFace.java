@@ -1,48 +1,414 @@
+import java.io.*;
 import java.util.Scanner;
 
 public class iFace{
 	private static Scanner input;
 	
+	//<Constants/>
+	private static final String path = "/home/valerio/Documentos/iFace/iFace/data/";
+	
+	private static final int MAX_ACCT = 100;
+	private static final int MAX_ATTR = 100;
+	private static final int MAX_CMNT = 100;
+	private static final int MAX_FRIENDS = 100;
+	private static final int MAX_MESSAGES = 100;
+	
+	private static final int ACCT_COL = 3;
+	private static final int ACCT_EMAIL = 0;
+	private static final int ACCT_NAME = 1;
+	private static final int ACCT_PASSWORD = 2;
+	
+	private static final int ATTR_COL = 2;
+	private static final int ATTR_KEY = 0;
+	private static final int ATTR_VALUE = 1;
+	
+	private static final int CMNT_COL = 3;
+	private static final int CMNT_NAME = 0;
+	private static final int CMNT_DESCRIPTION = 1;
+	private static final int CMNT_CREATOR = 2;
+	
+	private static final int FRIEND_COL = 1;
+	private static final int FRIEND_NAME = 0;
+	
+	private static final int MESSAGES_COL = 1;
+	private static final int MESSAGE_SRC = 0;
+	//</Constants>
+	
+	//<Variables/>
+	private static String accounts[][];
+	private static String communities[][];
+	private static String currUserAcct[];
+	private static String currUserAttr[][];
+	private static String currUserCmnt[][];
+	private static String currUserFriends[][];
+	private static String currUserMessages[][];
+	//</Variables>
+	
 	public static void main(String args[]){
 		input = new Scanner(System.in);
 		
-		login();
+		accounts = new String[MAX_ACCT][ACCT_COL];
+		communities = new String[MAX_CMNT][CMNT_COL];
+
+		currUserAcct = new String[ACCT_COL];
+		currUserAttr = new String[MAX_ATTR][ATTR_COL];
+		currUserCmnt = new String[MAX_CMNT][1];
+		currUserFriends = new String[MAX_FRIENDS][FRIEND_COL];
+		currUserMessages = new String[MAX_MESSAGES][MESSAGES_COL];
+		
+		loadDatabase("accounts.txt", accounts, ACCT_COL);
+		loadDatabase("communities.txt", communities, CMNT_COL);
+		
+		printDatabase(accounts, ACCT_COL, MAX_ACCT);
+		clearScreen();
+		
+		if(currUserAcct[ACCT_EMAIL] == null){
+			loginMenu();
+		}
+		
+		saveDatabase("accounts.txt", accounts, ACCT_COL, MAX_ACCT);
+		saveDatabase("communities.txt", communities, CMNT_COL, MAX_CMNT);
 		
 		input.close();
 	}
-	
-	public static void login(){
-		String menu[] = {"Entrar", "Criar conta", "Sair"};
+
+	private static void homeMenu(){
+		String currUserFolder = "users/" + currUserAcct[ACCT_EMAIL] + "/";
+		loadDatabase(currUserFolder + "attr.txt", currUserAttr, ATTR_COL);
+		loadDatabase(currUserFolder + "communities.txt", currUserCmnt, 1);
+		loadDatabase(currUserFolder + "friends.txt", currUserFriends, FRIEND_COL);
+		loadDatabase(currUserFolder + "messages.txt", currUserMessages, MESSAGES_COL);
 		
+		String options[] = {"Meu perfil", "Comunidades", "Voltar"};
+		clearScreen();
 		while(true){
-			showTitle("iFace");
-			switch(displayMenuOptions(menu)){
+			showTitle("Início");
+			switch(displayMenuOptions(options)){
 			case 1:
+				profileMenu();
 				break;
 			case 2:
+				communityMenu();
 				break;
-			case 3:
+			default:
+				saveDatabase(currUserFolder + "attr.txt", currUserAttr, ATTR_COL, MAX_ATTR);
+				saveDatabase(currUserFolder + "friends.txt", currUserFriends, FRIEND_COL, MAX_FRIENDS);
+				saveDatabase(currUserFolder + "communities.txt", currUserCmnt, 1, MAX_CMNT);
+				saveDatabase(currUserFolder + "messages.txt", currUserMessages, MESSAGES_COL, MAX_MESSAGES);
+				for(int i = 0;i < ACCT_COL;i++){
+					currUserAcct[i] = null;
+				}
+				return;
+			}
+			clearScreen();
+		}
+	}
+
+	//<Profile/>
+	private static void profileMenu(){
+		String options[] = {"Ver perfil", "Editar perfil", "Voltar"};
+		while(true){
+			clearScreen();
+			showTitle("Meu perfil");
+			switch(displayMenuOptions(options)){
+			case 1:
+				showProfile();
+				break;
+			case 2:
+				editProfileMenu();
+				break;
+			default:
 				return;
 			}
 		}
 	}
 	
-	public static int readInt(){
+	private static void showProfile(){
+		clearScreen();
+		showTitle("Meu perfil");
+		System.out.println("Nome: " + currUserAcct[ACCT_NAME]);
+		System.out.println("E-mail: " + currUserAcct[ACCT_EMAIL]);
+		showTitle("Sobre mim");
+		for(int i = 0;i < MAX_ATTR;i++){
+			if(currUserAttr[i][ATTR_KEY] != null){
+				System.out.println(currUserAttr[i][ATTR_KEY] + ": " + currUserAttr[i][ATTR_VALUE]);
+			}
+		}
+		getchar();
+	}
+	
+	private static void editProfileMenu(){
+		String options[] = {"Adicionar atributo", "Editar atributo", "Apagar atributo", "Voltar"};
+		while(true){
+			clearScreen();
+			showTitle("Editar perfil");
+			switch(displayMenuOptions(options)){
+			case 1:
+				addAttribute();
+				break;
+			case 2:
+				editAttribute();
+				break;
+			case 3:
+				eraseAttribute();
+				break;
+			default:
+				return;
+			}
+			
+		}
+	}
+	
+	private static void addAttribute(){
+		clearScreen();
+		showTitle("Adicionar atributo");
+		String attrName = askLine("Nome do atributo");
+		int index = databaseFind(currUserAttr, attrName, ATTR_KEY, MAX_ATTR);
+		if(index != -1){
+			System.out.println("Não foi possível adicionar o atributo.");
+			getchar();
+			return;
+		}
+		else{
+			int i;
+			for(i = 0;i < MAX_ATTR;i++){
+				if(currUserAttr[i][ATTR_KEY] == null){
+					break;
+				}
+			}
+			if(i < MAX_ATTR){
+				currUserAttr[i][ATTR_KEY] = attrName; 
+				currUserAttr[i][ATTR_VALUE] = askLine("Valor do atributo");
+			}
+		}
+	}
+	
+	private static void editAttribute(){
+		clearScreen();
+		showTitle("Editar atributo");
+		String attrName = askLine("Nome do atributo");
+		int index = databaseFind(currUserAttr, attrName, ATTR_KEY, MAX_ATTR);
+		if(index != -1){
+			currUserAttr[index][ATTR_VALUE] = askLine("Valor do atributo");
+			return;
+		}
+		System.out.println("Atributo não encontrado");
+		getchar();
+	}
+	
+	private static void eraseAttribute(){
+		clearScreen();
+		showTitle("Apagar atributo");
+		String attrName = askLine("Nome do atributo");
+		int index = databaseFind(currUserAttr, attrName, ATTR_KEY, MAX_ATTR);
+		if(index != -1){
+			currUserAttr[index][ATTR_KEY] = null;
+			currUserAttr[index][ATTR_VALUE] = null;
+			return;
+		}
+		System.out.println("O atributo não existe");
+		getchar();
+	}
+	
+	//</Profile>
+	
+	//<Login/>	
+	private static void loginMenu(){
+		String menu[] = {"Entrar", "Criar conta", "Sair"};
+		while(true){
+			clearScreen();
+			showTitle("iFace");
+			switch(displayMenuOptions(menu)){
+			case 1:
+				signIn();
+				break;
+			case 2:
+				signUp();
+				break;
+			default:
+				return;
+			}
+			if(currUserAcct[ACCT_EMAIL] != null){
+				homeMenu();
+			}
+		}
+	}
+	private static void signIn(){
+		clearScreen();
+		showTitle("Entrar");
+		String email = askLine("E-mail");
+		String password = askLine("Senha");
+		int index = databaseFind(accounts, email, ACCT_EMAIL, MAX_ACCT);
+		if(index != -1){
+			if(accounts[index][ACCT_PASSWORD].equals(password)){
+				for(int j = 0;j < ACCT_COL;j++){
+					currUserAcct[j] = accounts[index][j];
+				}
+				loadDatabase("users/" + email + "/attr.txt", currUserAttr, ATTR_COL);
+			}
+			else{
+				System.out.println("Senha incorreta");
+				getchar();
+			}
+		}
+		else{
+			System.out.println("Não existe nehuma conta associada a <" + email + ">");
+			getchar();
+		}
+	}
+	
+	private static void signUp(){
+		clearScreen();
+		showTitle("Criar nova conta");
+		String name = askLine("Nome");
+		String email = askLine("E-mail");
+		String password = askLine("Senha");
+		String passwordConfirm = askLine("Confirme a senha");
+		if(password.equals(passwordConfirm)){
+			String items[] = {name, email, password};
+			databaseInsert(accounts, items, items.length, MAX_ACCT);
+			currUserAcct[ACCT_NAME] = name;
+			currUserAcct[ACCT_EMAIL] = email;
+			currUserAcct[ACCT_PASSWORD] = password;
+			File userDatabase = new File(path + "users/" + email);
+			if(userDatabase.exists() == false){
+				userDatabase.mkdir();
+				String files[] = {"attr", "friends", "communities", "messages"};
+				createFiles(path + "users/" + email + "/", files);
+			}
+			System.out.println("Conta criada com sucesso");
+			getchar();
+		}
+		else{
+			System.out.println("As senhas não são iguais");
+			getchar();
+		}
+	}
+	
+	//</Login>
+	
+	//<Communities/>
+	private static void communityMenu(){
+		String options[] = {"Minhas comunidades", "Criar comunidade", "Adicionar comunidade", "Todas as comunidades", "Voltar"};
+		clearScreen();
+		while(true){
+			showTitle("Comunidades");
+			switch(displayMenuOptions(options)){
+			case 1:
+				showCommunities();
+				break;
+			case 2:
+				createCommunity();
+				break;
+			case 3:
+				addCommunity();
+				break;
+			case 4:
+				showAllCommunities();
+				break;
+			default:
+				return;
+			}
+			clearScreen();
+		}
+	}
+	private static void showAllCommunities(){
+		clearScreen();
+		showTitle("Todas as comunidades");
+		for(int i = 0;i < MAX_CMNT;i++){
+			if(communities[i][CMNT_NAME] != null){
+				printCommunity(communities[i]);
+			}
+		}
+		getchar();
+	}
+	private static void showCommunities(){
+		clearScreen();
+		showTitle("Minhas comunidades");
+		for(int i = 0;i < MAX_CMNT;i++){
+			if(currUserCmnt[i][0] != null){
+				printCommunity(communities[databaseFind(communities, currUserCmnt[i][0], CMNT_NAME, MAX_CMNT)]);
+			}
+		}
+		getchar();
+	}
+	private static void createCommunity(){
+		clearScreen();
+		showTitle("Criar comunidade");
+		String cmntName = askLine("Nome da comunidade");
+		int index = databaseFind(communities, cmntName, CMNT_NAME, MAX_CMNT);
+		if(index != -1){
+			System.out.println("A comunidade já existe ou não é possível criar mais comunidades");
+			getchar();
+			return;
+		}
+		else{
+			int i;
+			for(i = 0;i < MAX_CMNT;i++){
+				if(communities[i][CMNT_NAME] == null){
+					break;
+				}
+			}
+			if(i < MAX_CMNT){
+				communities[i][CMNT_NAME] = cmntName; 
+				communities[i][CMNT_DESCRIPTION] = askLine("Descrição da comunidade");
+				communities[i][CMNT_CREATOR] = currUserAcct[ACCT_NAME];
+				String items[] = {cmntName};
+				databaseInsert(currUserCmnt, items, items.length, MAX_CMNT);
+				System.out.println("Comunidade criada");
+				getchar();
+			}
+			else{
+				System.out.println("Não foi possível criar a comunidade");
+				getchar();
+			}
+		}
+	}
+	private static void addCommunity(){
+		clearScreen();
+		showTitle("Adicionar comunidade");
+		String cmntName = askLine("Nome da comunidade");
+		if(databaseFind(communities, cmntName, CMNT_NAME, MAX_CMNT) == -1){
+			String items[] = {cmntName};
+			databaseInsert(currUserCmnt, items, items.length, MAX_CMNT);
+			System.out.println("Comunidade adicionada");
+			getchar();
+		}
+		else{
+			System.out.println("Comunidade não encontrada ou você já faz parte dela. Você pode consultar todas as comunidades em 'Mostrar todas comunidades'");
+			getchar();
+		}
+	}
+	private static void printCommunity(String community[]){
+		System.out.println("------------------");
+		System.out.println("Nome: "  + community[CMNT_NAME]);
+		System.out.println("Criada por: " + community[CMNT_CREATOR]);
+		System.out.println("Descrição: " + community[CMNT_DESCRIPTION]);
+		System.out.println("------------------");
+	}
+	//</Communities>
+
+	private static void getchar(){
+		System.out.println("\nAperte ENTER para continuar");
+		input.nextLine();
+	}
+	
+	private static int readInt(){
 		int read = input.nextInt();
 		input.nextLine();
 		return read;
 	}
 	
-	public static String readLine(){
+	private static String readLine(){
 		return input.nextLine();
 	}
 	
-	public static String askLine(String q){
-		System.out.println(q + ": ");
+	private static String askLine(String q){
+		System.out.print(q + ": ");
 		return readLine();
 	}
 	
-	public static int displayMenuOptions(String items[]){
+	private static int displayMenuOptions(String items[]){
 		int selectedItem = 0;
 		
 		for(int i = 0;i < items.length;i++){
@@ -60,8 +426,98 @@ public class iFace{
 		return selectedItem;
 	}
 	
-	public static void showTitle(String title){
+	private static void showTitle(String title){
 		System.out.println("\n" + title + "\n");
 	}
 	
+	private static void loadDatabase(String filename, String dest[][], int columns){
+		try{
+			File database = new File(path + filename);
+			FileReader fr = new FileReader(database);
+			BufferedReader br = new BufferedReader(fr);
+			String line = br.readLine();
+			for(int i = 0;line != null;i++){
+				for(int j = 0;j < columns;j++){
+					dest[i][j] = line;
+					line = br.readLine();
+				}
+			}
+
+			br.close();
+		}
+		catch (IOException e){
+			e.printStackTrace();
+		}
+	}
+	
+	private static void printDatabase(String database[][], int columns, int max_rows){
+		String separator = "-----------";
+		for(int i = 0;i < max_rows;i++){
+			if(database[i][0] != null){
+				System.out.println(separator);
+				for(int j = 0;j < columns;j++){
+					System.out.println(database[i][j]);
+				}
+				System.out.println(separator);
+			}
+		}
+	}
+	
+	private static void saveDatabase(String filename, String source[][], int columns, int max_rows){
+		try{
+			File database = new File(path + filename);
+			FileWriter fw = new FileWriter(database);
+			BufferedWriter bw = new BufferedWriter(fw);
+			for(int i = 0;i < max_rows;i++){
+				if(source[i][0] != null){
+					for(int j = 0;j < columns;j++){
+						bw.write(source[i][j]);
+						bw.newLine();
+					}
+				}
+			}
+			bw.close();
+		}
+		catch (IOException e){
+			e.printStackTrace();
+		}
+	}
+	
+	private static void clearScreen(){
+		for(int i = 0;i < 90;i++){
+			System.out.print("\n");
+		}
+	}
+
+	private static void createFiles(String directory, String files[]){
+		for(int i = 0;i < files.length;i++){
+			try{
+				File f = new File(directory + files[i] + ".txt");
+				f.createNewFile();
+			}
+			catch (IOException e){
+				e.printStackTrace();
+			}
+		}
+	}
+	private static int databaseFind(String database[][], String key, int column, int max_rows){
+		for(int i = 0;i < max_rows;i++){
+			if(database[i][column] != null){
+				if(database[i][column].equals(key)){
+					return i;
+				}
+			}
+		}
+		return -1;
+	}	
+	private static void databaseInsert(String database[][], String items[], int columns, int max_rows){
+		for(int i = 0;i < max_rows;i++){
+			if(database[i][0] == null){
+				for(int j = 0;j < columns;j++){
+					database[i][j] = items[j];
+				}
+				return;
+			}
+		}
+	}
 }
