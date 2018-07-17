@@ -1,3 +1,6 @@
 vnrj@ic.ufal.br
 Valério Nogueira Rodrigues Júnior
 lalilulelo
+user@email.com
+User
+password
