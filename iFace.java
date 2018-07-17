@@ -31,8 +31,10 @@ public class iFace{
 	private static final int FRIEND_COL = 1;
 	private static final int FRIEND_EMAIL = 0;
 	
-	private static final int MESSAGES_COL = 1;
+	private static final int MESSAGES_COL = 3;
 	private static final int MESSAGE_SRC = 0;
+	private static final int MESSAGE_DEST = 1;
+	private static final int MESSAGE_MESSAGE = 2;
 	
 	private static final int RQST_COL = 3;
 	private static final int RQST_SRC = 0;
@@ -68,9 +70,9 @@ public class iFace{
 		currUserFriends = new String[MAX_FRIENDS][FRIEND_COL];
 		currUserMessages = new String[MAX_MESSAGES][MESSAGES_COL];
 		
-		loadDatabase("accounts.txt", accounts, ACCT_COL);
-		loadDatabase("communities.txt", communities, CMNT_COL);
-		loadDatabase("requests.txt", requests, RQST_COL);
+		loadDatabase("accounts.txt", accounts, ACCT_COL, MAX_ACCT);
+		loadDatabase("communities.txt", communities, CMNT_COL, MAX_CMNT);
+		loadDatabase("requests.txt", requests, RQST_COL, MAX_RQST);
 		
 		printDatabase(accounts, ACCT_COL, MAX_ACCT);
 		clearScreen();
@@ -88,10 +90,10 @@ public class iFace{
 
 	private static void homeMenu(){
 		String currUserFolder = "users/" + currUserAcct[ACCT_EMAIL] + "/";
-		loadDatabase(currUserFolder + "attr.txt", currUserAttr, ATTR_COL);
-		loadDatabase(currUserFolder + "communities.txt", currUserCmnt, 1);
-		loadDatabase(currUserFolder + "friends.txt", currUserFriends, FRIEND_COL);
-		loadDatabase(currUserFolder + "messages.txt", currUserMessages, MESSAGES_COL);
+		loadDatabase(currUserFolder + "attr.txt", currUserAttr, ATTR_COL, MAX_ATTR);
+		loadDatabase(currUserFolder + "communities.txt", currUserCmnt, 1, MAX_CMNT);
+		loadDatabase(currUserFolder + "friends.txt", currUserFriends, FRIEND_COL, MAX_FRIENDS);
+		loadDatabase(currUserFolder + "messages.txt", currUserMessages, MESSAGES_COL, MAX_MESSAGES);
 		
 		String options[] = {"Meu perfil", "Comunidades", "Amigos", "Voltar"};
 		clearScreen();
@@ -256,7 +258,6 @@ public class iFace{
 				for(int j = 0;j < ACCT_COL;j++){
 					currUserAcct[j] = accounts[index][j];
 				}
-				loadDatabase("users/" + email + "/attr.txt", currUserAttr, ATTR_COL);
 			}
 			else{
 				System.out.println("Senha incorreta");
@@ -459,9 +460,11 @@ public class iFace{
 						System.out.println(requests[i][RQST_SRC] + " aceitou sua solicitação de amizade!");
 						String items[] = {requests[i][RQST_SRC]};
 						databaseInsert(currUserFriends, items, FRIEND_COL, MAX_FRIENDS);
+						getchar();
 						break;
 					case RQST_INVITE_FAILURE:
 						System.out.println(requests[i][RQST_SRC] + " recusou sua solicitação de amizade");
+						getchar();
 						break;
 					case RQST_ACCOUNT_CLOSURE:
 						databaseRemove(currUserFriends, requests[i][RQST_SRC], FRIEND_EMAIL, RQST_COL, MAX_RQST);
@@ -521,7 +524,12 @@ public class iFace{
 		}
 	}
 	
-	private static void loadDatabase(String filename, String dest[][], int columns){
+	private static void loadDatabase(String filename, String dest[][], int columns, int maxRows){
+		for(int i = 0;i < maxRows;i++){
+			for(int j = 0;j < columns;j++){
+				dest[i][j] = null;
+			}
+		}
 		try{
 			File database = new File(path + filename);
 			FileReader fr = new FileReader(database);
@@ -540,9 +548,9 @@ public class iFace{
 			e.printStackTrace();
 		}
 	}
-	private static void printDatabase(String database[][], int columns, int max_rows){
+	private static void printDatabase(String database[][], int columns, int maxRows){
 		String separator = "-----------";
-		for(int i = 0;i < max_rows;i++){
+		for(int i = 0;i < maxRows;i++){
 			if(database[i][0] != null){
 				System.out.println(separator);
 				for(int j = 0;j < columns;j++){
@@ -552,12 +560,12 @@ public class iFace{
 			}
 		}
 	}
-	private static void saveDatabase(String filename, String source[][], int columns, int max_rows){
+	private static void saveDatabase(String filename, String source[][], int columns, int maxRows){
 		try{
 			File database = new File(path + filename);
 			FileWriter fw = new FileWriter(database);
 			BufferedWriter bw = new BufferedWriter(fw);
-			for(int i = 0;i < max_rows;i++){
+			for(int i = 0;i < maxRows;i++){
 				if(source[i][0] != null){
 					for(int j = 0;j < columns;j++){
 						bw.write(source[i][j]);
@@ -582,8 +590,8 @@ public class iFace{
 			}
 		}
 	}
-	private static int databaseFind(String database[][], String key, int column, int max_rows){
-		for(int i = 0;i < max_rows;i++){
+	private static int databaseFind(String database[][], String key, int column, int maxRows){
+		for(int i = 0;i < maxRows;i++){
 			if(database[i][0] != null){
 				if(database[i][column].equals(key)){
 					return i;
@@ -592,8 +600,8 @@ public class iFace{
 		}
 		return -1;
 	}	
-	private static void databaseInsert(String database[][], String items[], int columns, int max_rows){
-		for(int i = 0;i < max_rows;i++){
+	private static void databaseInsert(String database[][], String items[], int columns, int maxRows){
+		for(int i = 0;i < maxRows;i++){
 			if(database[i][0] == null){
 				for(int j = 0;j < columns;j++){
 					database[i][j] = items[j];
@@ -602,8 +610,8 @@ public class iFace{
 			}
 		}
 	}
-	private static void databaseRemove(String database[][], String key, int column, int columns, int max_rows){
-		for(int i = 0;i < max_rows;i++){
+	private static void databaseRemove(String database[][], String key, int column, int columns, int maxRows){
+		for(int i = 0;i < maxRows;i++){
 			if(database[i][0] != null){
 				if(database[i][column].equals(key)){
 					for(int j = 0;j < columns;j++){
