@@ -7,12 +7,12 @@ public class iFace{
 	//<Constants/>
 	private static final String path = "/home/valerio/Documentos/iFace/iFace/data/";
 	
-	private static final int MAX_ACCT = 100;
-	private static final int MAX_ATTR = 100;
-	private static final int MAX_CMNT = 100;
-	private static final int MAX_FRIENDS = 100;
-	private static final int MAX_MESSAGES = 100;
-	private static final int MAX_RQST = 100;
+	private static final int MAX_ACCT = 5;
+	private static final int MAX_ATTR = 5;
+	private static final int MAX_CMNT = 5;
+	private static final int MAX_FRIENDS = 5;
+	private static final int MAX_MESSAGES = 5;
+	private static final int MAX_RQST = 5;
 	
 	private static final int ACCT_COL = 3;
 	private static final int ACCT_EMAIL = 0;
@@ -74,9 +74,6 @@ public class iFace{
 		loadDatabase("communities.txt", communities, CMNT_COL, MAX_CMNT);
 		loadDatabase("requests.txt", requests, RQST_COL, MAX_RQST);
 		
-		printDatabase(accounts, ACCT_COL, MAX_ACCT);
-		clearScreen();
-		
 		if(currUserAcct[ACCT_EMAIL] == null){
 			loginMenu();
 		}
@@ -94,6 +91,8 @@ public class iFace{
 		loadDatabase(currUserFolder + "communities.txt", currUserCmnt, 1, MAX_CMNT);
 		loadDatabase(currUserFolder + "friends.txt", currUserFriends, FRIEND_COL, MAX_FRIENDS);
 		loadDatabase(currUserFolder + "messages.txt", currUserMessages, MESSAGES_COL, MAX_MESSAGES);
+
+		solveRequests();
 		
 		String options[] = {"Meu perfil", "Comunidades", "Amigos", "Voltar"};
 		clearScreen();
@@ -117,6 +116,10 @@ public class iFace{
 				for(int i = 0;i < ACCT_COL;i++){
 					currUserAcct[i] = null;
 				}
+				clearDatabase(currUserAttr, ATTR_COL, MAX_ATTR);
+				clearDatabase(currUserFriends, FRIEND_COL, MAX_FRIENDS);
+				clearDatabase(currUserCmnt, 1, MAX_CMNT);
+				clearDatabase(currUserMessages, MESSAGES_COL, MAX_MESSAGES);
 				return;
 			}
 			clearScreen();
@@ -242,7 +245,6 @@ public class iFace{
 				return;
 			}
 			if(currUserAcct[ACCT_EMAIL] != null){
-				solveRequests();
 				homeMenu();
 			}
 		}
@@ -277,7 +279,7 @@ public class iFace{
 		String password = askLine("Senha");
 		String passwordConfirm = askLine("Confirme a senha");
 		if(password.equals(passwordConfirm)){
-			String items[] = {name, email, password};
+			String items[] = {email, name, password};
 			databaseInsert(accounts, items, items.length, MAX_ACCT);
 			currUserAcct[ACCT_NAME] = name;
 			currUserAcct[ACCT_EMAIL] = email;
@@ -447,9 +449,9 @@ public class iFace{
 						switch(displayMenuOptions(options)){
 						case 1:
 							addRequest(currUserAcct[ACCT_EMAIL], requests[i][RQST_SRC], RQST_INVITE_SUCCESS);
-							printDatabase(requests, RQST_COL, MAX_RQST);
 							String items[] = {requests[i][RQST_SRC]};
-							databaseInsert(currUserFriends, items, FRIEND_COL, MAX_FRIENDS);
+							databaseInsert(currUserFriends, items, items.length, MAX_FRIENDS);
+							getchar();
 							break;
 						case 2:
 							addRequest(currUserAcct[ACCT_EMAIL], requests[i][RQST_DEST], RQST_INVITE_FAILURE);
@@ -459,7 +461,7 @@ public class iFace{
 					case RQST_INVITE_SUCCESS:
 						System.out.println(requests[i][RQST_SRC] + " aceitou sua solicitação de amizade!");
 						String items[] = {requests[i][RQST_SRC]};
-						databaseInsert(currUserFriends, items, FRIEND_COL, MAX_FRIENDS);
+						databaseInsert(currUserFriends, items, items.length, MAX_FRIENDS);
 						getchar();
 						break;
 					case RQST_INVITE_FAILURE:
@@ -607,6 +609,13 @@ public class iFace{
 					database[i][j] = items[j];
 				}
 				return;
+			}
+		}
+	}
+	private static void clearDatabase(String database[][], int columns, int rows){
+		for(int i = 0;i < rows;i++){
+			for(int j = 0;j < columns;j++){
+				database[i][j] = null;
 			}
 		}
 	}
