@@ -7,12 +7,12 @@ public class iFace{
 	//<Constants/>
 	private static final String path = "/home/valerio/Documentos/iFace/iFace/data/";
 	
-	private static final int MAX_ACCT = 5;
-	private static final int MAX_ATTR = 5;
-	private static final int MAX_CMNT = 5;
-	private static final int MAX_FRIENDS = 5;
-	private static final int MAX_MESSAGES = 5;
-	private static final int MAX_RQST = 5;
+	private static final int MAX_ACCT = 100;
+	private static final int MAX_ATTR = 100;
+	private static final int MAX_CMNT = 100;
+	private static final int MAX_FRIENDS = 100;
+	private static final int MAX_MESSAGES = 100;
+	private static final int MAX_RQST = 100;
 	
 	private static final int ACCT_COL = 3;
 	private static final int ACCT_EMAIL = 0;
@@ -36,14 +36,16 @@ public class iFace{
 	private static final int MESSAGE_DEST = 1;
 	private static final int MESSAGE_MESSAGE = 2;
 	
-	private static final int RQST_COL = 3;
+	private static final int RQST_COL = 4;
 	private static final int RQST_SRC = 0;
 	private static final int RQST_DEST = 1;
 	private static final int RQST_TYPE = 2;
+	private static final int RQST_TEXT = 3;
 	private static final int RQST_INVITE = 0;
 	private static final int RQST_INVITE_FAILURE = 1;
 	private static final int RQST_INVITE_SUCCESS = 2;
 	private static final int RQST_ACCOUNT_CLOSURE = 3;
+	private static final int RQST_MESSAGE = 4;
 	//</Constants>
 	
 	//<Variables/>
@@ -94,7 +96,7 @@ public class iFace{
 
 		solveRequests();
 		
-		String options[] = {"Meu perfil", "Comunidades", "Amigos", "Voltar"};
+		String options[] = {"Meu perfil", "Comunidades", "Amigos", "Mensagens", "Encerrar conta", "Voltar"};
 		clearScreen();
 		while(true){
 			showTitle("Início");
@@ -108,6 +110,22 @@ public class iFace{
 			case 3:
 				friendsMenu();
 				break;
+			case 4:
+				messagesMenu();
+				break;
+			case 5:
+				for(int i = 0;i < MAX_FRIENDS;i++){
+					if(currUserFriends[i][0] != null){
+						addRequest(currUserAcct[ACCT_EMAIL], currUserFriends[i][FRIEND_EMAIL], RQST_ACCOUNT_CLOSURE);
+					}
+				}
+				String folder = path + "users/" + currUserAcct[ACCT_EMAIL];
+				File userFolder = new File(folder);
+				for(File f : userFolder.listFiles()){
+					f.delete();
+				}
+				userFolder.delete();
+				databaseRemove(accounts, currUserAcct[ACCT_EMAIL], ACCT_EMAIL, ACCT_COL, MAX_ACCT);
 			default:
 				saveDatabase(currUserFolder + "attr.txt", currUserAttr, ATTR_COL, MAX_ATTR);
 				saveDatabase(currUserFolder + "friends.txt", currUserFriends, FRIEND_COL, MAX_FRIENDS);
@@ -433,7 +451,7 @@ public class iFace{
 	
 	//<Requests/>
 	private static void addRequest(String src, String dest, int type){
-		String items[] = {src, dest, Integer.toString(type)};
+		String items[] = {src, dest, Integer.toString(type), ""};
 		databaseInsert(requests, items, RQST_COL, MAX_RQST);
 	}
 	private static void solveRequests(){
@@ -443,33 +461,49 @@ public class iFace{
 					clearScreen();
 					switch(Integer.valueOf(requests[i][RQST_TYPE])){
 					case RQST_INVITE:
-						showTitle("Solicitação de amizade");
-						System.out.println(requests[i][RQST_SRC] + " te enviou uma solicitação de amizade");
-						String options[] = {"Aceitar", "Recusar"};
-						switch(displayMenuOptions(options)){
-						case 1:
-							addRequest(currUserAcct[ACCT_EMAIL], requests[i][RQST_SRC], RQST_INVITE_SUCCESS);
-							String items[] = {requests[i][RQST_SRC]};
-							databaseInsert(currUserFriends, items, items.length, MAX_FRIENDS);
-							getchar();
-							break;
-						case 2:
-							addRequest(currUserAcct[ACCT_EMAIL], requests[i][RQST_DEST], RQST_INVITE_FAILURE);
-							break;
+						if(databaseFind(accounts, requests[i][RQST_SRC], ACCT_EMAIL, MAX_ACCT) != -1){
+							showTitle("Solicitação de amizade");
+							System.out.println(requests[i][RQST_SRC] + " te enviou uma solicitação de amizade");
+							String options[] = {"Aceitar", "Recusar"};
+							switch(displayMenuOptions(options)){
+							case 1:
+								addRequest(currUserAcct[ACCT_EMAIL], requests[i][RQST_SRC], RQST_INVITE_SUCCESS);
+								String items[] = {requests[i][RQST_SRC]};
+								databaseInsert(currUserFriends, items, items.length, MAX_FRIENDS);
+								getchar();
+								break;
+							case 2:
+								addRequest(currUserAcct[ACCT_EMAIL], requests[i][RQST_DEST], RQST_INVITE_FAILURE);
+								break;
+							}
 						}
 						break;
 					case RQST_INVITE_SUCCESS:
-						System.out.println(requests[i][RQST_SRC] + " aceitou sua solicitação de amizade!");
-						String items[] = {requests[i][RQST_SRC]};
-						databaseInsert(currUserFriends, items, items.length, MAX_FRIENDS);
-						getchar();
+						if(databaseFind(accounts, requests[i][RQST_SRC], ACCT_EMAIL, MAX_ACCT) != -1){
+							System.out.println(requests[i][RQST_SRC] + " aceitou sua solicitação de amizade!");
+							String items[] = {requests[i][RQST_SRC]};
+							databaseInsert(currUserFriends, items, items.length, MAX_FRIENDS);
+							getchar();
+						}
 						break;
 					case RQST_INVITE_FAILURE:
-						System.out.println(requests[i][RQST_SRC] + " recusou sua solicitação de amizade");
-						getchar();
+						if(databaseFind(accounts, requests[i][RQST_SRC], ACCT_EMAIL, MAX_ACCT) != -1){
+							System.out.println(requests[i][RQST_SRC] + " recusou sua solicitação de amizade");
+							getchar();
+						}
 						break;
 					case RQST_ACCOUNT_CLOSURE:
-						databaseRemove(currUserFriends, requests[i][RQST_SRC], FRIEND_EMAIL, RQST_COL, MAX_RQST);
+						if(databaseFind(accounts, requests[i][RQST_SRC], ACCT_EMAIL, MAX_ACCT) != -1){
+							databaseRemove(currUserFriends, requests[i][RQST_SRC], FRIEND_EMAIL, RQST_COL, MAX_RQST);
+						}
+						break;
+					case RQST_MESSAGE:
+						if(databaseFind(accounts, requests[i][RQST_SRC], ACCT_EMAIL, MAX_ACCT) != -1){
+							String items[] = {requests[i][RQST_SRC], requests[i][RQST_DEST], requests[i][RQST_TEXT]};
+							databaseInsert(currUserMessages, items, items.length, MAX_MESSAGES);
+							System.out.println("Você tem uma nova mensagem de " + requests[i][RQST_SRC]);
+							getchar();
+						}
 						break;
 					}
 					for(int j = 0;j < RQST_COL;j++){
@@ -480,6 +514,46 @@ public class iFace{
 		}
 	}
 	//</Requests>
+	
+	//<Messages/>
+	private static void messagesMenu(){
+		String options[] = {"Mostrar mensagens", "Enviar mensagem", "Voltar"};
+		while(true){
+			clearScreen();
+			switch(displayMenuOptions(options)){
+			case 1:
+				clearScreen();
+				showTitle("Todas as mensagens");
+				for(int i = 0;i < MAX_MESSAGES;i++){
+					if(currUserMessages[i][0] != null){
+						System.out.println("---------------");
+						System.out.println("De: " + currUserMessages[i][MESSAGE_SRC]);
+						System.out.println("Para: " + currUserMessages[i][MESSAGE_DEST]);
+						System.out.println("Mensagem: " + currUserMessages[i][MESSAGE_MESSAGE]);
+						System.out.println("---------------");
+					}
+				}
+				getchar();
+				break;
+			case 2:
+				String dest = askLine("E-mail do usuário");
+				if(databaseFind(accounts, dest, ACCT_EMAIL, MAX_ACCT) != -1){
+					String message = askLine("Digite sua mensagem");
+					sendMessage(currUserAcct[ACCT_EMAIL], dest, message);
+					String items[] = {currUserAcct[ACCT_EMAIL], dest, message};
+					databaseInsert(currUserMessages, items, items.length, MAX_MESSAGES);
+				}
+				break;
+			default:
+				return;
+			}
+		}
+	}
+	private static void sendMessage(String src, String dest, String message){
+		String items[] = {src, dest, Integer.toString(RQST_MESSAGE), message};
+		databaseInsert(requests, items, RQST_COL, MAX_RQST);
+	}
+	//</Messages>
 	
 	//<Input/>
 	private static void getchar(){
